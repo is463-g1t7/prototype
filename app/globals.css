@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Campus-map design system — sampled off public/smu-campus-map.jpeg:
+ * cream paper, ink-charcoal roads, leaf-tree green, ochre footpaths,
+ * terracotta rooftops. SMU navy kept as brand (glass-tower blue).
+ * Light-only theme: no dark mode.
+ */
+@theme {
+  --color-paper: #f4efe1;
+  --color-card: #fffdf6;
+  --color-ink: #33383d;
+  --color-muted: #6e746a;
+  --color-line: #e2d9bf;
+  --color-sand: #eae2cb;
+  --color-brand: #0e2a47;
+  --color-gold: #c5a253;
+  --color-leaf: #4c7f3c;
+  --color-pine: #3a612d;
+  --color-tint-leaf: #e3edd5;
+  --color-harvest: #c07f16;
+  --color-ochre: #8f6114;
+  --color-tint-ochre: #f3e4c3;
+  --color-roof: #b23c26;
+  --color-ember: #9c3f27;
+  --color-tint-ember: #f5dfd3;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--color-card);
+  --color-foreground: var(--color-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 1px;
 }

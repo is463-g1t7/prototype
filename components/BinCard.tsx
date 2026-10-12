@@ -22,30 +22,27 @@ export function BinCard({
   const pct = Math.min(100, (bin.weightKg / BIN_CAPACITY_KG) * 100);
   const badge =
     status === "full"
-      ? "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300"
+      ? "bg-tint-ember text-ember"
       : status === "near"
-        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-        : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300";
+        ? "bg-tint-ochre text-ochre"
+        : "bg-tint-leaf text-pine";
   const label = status === "full" ? "FULL" : status === "near" ? "Near full" : "OK";
-  const bar =
-    status === "full" ? "bg-red-500" : status === "near" ? "bg-amber-500" : "bg-emerald-500";
+  const bar = status === "full" ? "bg-roof" : status === "near" ? "bg-harvest" : "bg-leaf";
 
   return (
     <article
       id={`bin-${bin.id}`}
       onClick={() => onSelect(bin.id)}
-      className={`flex scroll-mt-6 cursor-pointer flex-col gap-3 rounded-lg border p-4 transition-shadow ${
-        selected
-          ? "border-[#0e2a47] shadow-[0_0_0_2px_#0e2a47] dark:border-white"
-          : "border-zinc-200 dark:border-zinc-800"
+      className={`flex scroll-mt-6 cursor-pointer flex-col gap-3 rounded-lg border bg-card p-4 transition-shadow ${
+        selected ? "border-brand shadow-[0_0_0_2px_var(--color-brand)]" : "border-line"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="font-semibold">
-            {bin.name} <span className="text-zinc-500">({bin.short})</span>
+            {bin.name} <span className="text-muted">({bin.short})</span>
           </h2>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted">
             {bin.pantry} · {levels} pantries
             {eta && eta !== "FULL" ? ` · ${eta}` : ""}
             {topPantry ? ` · top ${topPantry}` : ""}
@@ -60,10 +57,10 @@ export function BinCard({
         <span className="text-2xl font-semibold tabular-nums">
           {bin.weightKg.toFixed(2)}
         </span>{" "}
-        <span className="text-zinc-500">kg / {BIN_CAPACITY_KG} kg</span>
+        <span className="text-muted">kg / {BIN_CAPACITY_KG} kg</span>
       </p>
       <div
-        className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800"
+        className="h-2 overflow-hidden rounded-full bg-sand"
         role="progressbar"
         aria-valuenow={bin.weightKg}
         aria-valuemin={0}
@@ -83,13 +80,13 @@ export function BinCard({
             onCollect(bin.id);
           }}
           disabled={bin.weightKg <= 0}
-          className="h-9 flex-1 rounded-md bg-[#0e2a47] px-3 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="h-9 flex-1 rounded-md bg-brand px-3 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Mark collected
         </button>
       </div>
 
-      <p className="text-xs text-zinc-500" suppressHydrationWarning>
+      <p className="text-xs text-muted" suppressHydrationWarning>
         Updated {new Date(bin.updatedAt).toLocaleString()}
       </p>
     </article>

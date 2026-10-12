@@ -245,11 +245,11 @@ export function DashboardClient() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="overflow-hidden rounded-xl bg-[#0e2a47] text-white">
-        <div className="h-1 bg-[#c5a253]" />
+      <div className="overflow-hidden rounded-xl bg-brand text-white">
+        <div className="h-1 bg-gold" />
         <div className="flex flex-wrap items-end justify-between gap-3 px-5 py-6 sm:px-8">
           <div>
-            <p className="text-xs font-semibold tracking-[0.2em] text-[#c5a253]">
+            <p className="text-xs font-semibold tracking-[0.2em] text-gold">
               SMU SUSTAINABILITY · CAMPUS COFFEE LOOP
             </p>
             <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Smart Bin Dashboard</h1>
@@ -263,7 +263,7 @@ export function DashboardClient() {
               type="button"
               onClick={() => setDemoOn((v) => !v)}
               className={`h-10 rounded-md px-4 text-sm font-semibold ${
-                demoOn ? "bg-[#c5a253] text-[#0e2a47]" : "bg-white text-[#0e2a47]"
+                demoOn ? "bg-gold text-brand" : "bg-card text-brand"
               }`}
             >
               {demoOn ? "⏸ Pause live day" : "▶ Simulate live day"}
@@ -283,13 +283,13 @@ export function DashboardClient() {
         {stats.map(([label, value]) => (
           <div
             key={label}
-            className="rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-800"
+            className="rounded-lg border border-line bg-card px-4 py-3"
           >
-            <dt className="text-sm text-zinc-500">{label}</dt>
+            <dt className="text-sm text-muted">{label}</dt>
             <dd className="text-xl font-semibold tabular-nums">
               {value}
               {label === "Needs collection" && needs > 0 && (
-                <span className="ml-2 inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                <span className="ml-2 inline-block h-2 w-2 animate-pulse rounded-full bg-roof" />
               )}
             </dd>
           </div>
@@ -312,8 +312,8 @@ export function DashboardClient() {
                 onClick={() => setFilter(f)}
                 className={`rounded-full px-3 py-1 text-sm font-medium ${
                   filter === f
-                    ? "bg-[#0e2a47] text-white"
-                    : "border border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                    ? "bg-brand text-white"
+                    : "border border-line bg-card hover:bg-sand"
                 }`}
               >
                 {label}
@@ -322,7 +322,7 @@ export function DashboardClient() {
             <button
               type="button"
               onClick={syncFromServer}
-              className="ml-auto rounded-full border border-zinc-300 px-3 py-1 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+              className="ml-auto rounded-full border border-line bg-card px-3 py-1 text-sm font-medium hover:bg-sand"
             >
               ↻ Sync{syncedAt ? ` · ${syncedAt}` : ""}
             </button>
@@ -338,7 +338,7 @@ export function DashboardClient() {
           <CleanerPanel bins={bins} initialBinId={selectedId} onDeposit={deposit} />
           <h2 className="font-semibold">
             Collection queue{" "}
-            <span className="font-normal text-zinc-500">
+            <span className="font-normal text-muted">
               {demoOn ? "· live" : "· sorted by urgency"}
             </span>
           </h2>
@@ -361,7 +361,7 @@ export function DashboardClient() {
         ))}
       </section>
       {visible.length === 0 && (
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted">
           Nothing here — every bin is clear. Switch the filter to see the fleet.
         </p>
       )}
@@ -378,7 +378,7 @@ export function DashboardClient() {
         <ActivityFeed events={events} bins={bins} now={now} />
       </section>
 
-      <p className="text-sm text-zinc-500">
+      <p className="text-sm text-muted">
         Weighing a bin by hand? <Link href="/scan" className="underline">Scan it with the camera</Link> or{" "}
         <Link href="/" className="underline">upload a scale photo</Link>.
       </p>

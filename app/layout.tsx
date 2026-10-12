@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Image OCR",
-  description: "Extract text from images with PaddleOCR",
+  title: "Smart Bin Dashboard · SMU Coffee Loop",
+  description: "Live coffee-grounds weights across SMU pantries",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      style={{ colorScheme: "light" }}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

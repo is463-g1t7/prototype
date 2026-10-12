@@ -108,11 +108,11 @@ export function ScannerClient() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="overflow-hidden rounded-xl bg-[#0e2a47] text-white">
-        <div className="h-1 bg-[#c5a253]" />
+      <div className="overflow-hidden rounded-xl bg-brand text-white">
+        <div className="h-1 bg-gold" />
         <div className="flex flex-wrap items-end justify-between gap-3 px-5 py-6 sm:px-8">
           <div>
-            <p className="text-xs font-semibold tracking-[0.2em] text-[#c5a253]">
+            <p className="text-xs font-semibold tracking-[0.2em] text-gold">
               PHONE AS IOT NODE · CAMERA OCR ON LCD
             </p>
             <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Scale Scanner</h1>
@@ -129,11 +129,11 @@ export function ScannerClient() {
 
       <div className="flex max-w-sm flex-wrap gap-2">
         <label className="flex min-w-52 flex-1 flex-col gap-1 text-sm">
-          <span className="text-zinc-600 dark:text-zinc-400">Bin under the scale</span>
+          <span className="text-muted">Bin under the scale</span>
           <select
             value={binId}
             onChange={(e) => setBinId(e.target.value)}
-            className="h-10 rounded-md border border-zinc-300 bg-background px-3 dark:border-zinc-700"
+            className="h-10 rounded-md border border-line bg-background px-3"
           >
             {INITIAL_BINS.map((b) => (
               <option key={b.id} value={b.id}>
@@ -143,11 +143,11 @@ export function ScannerClient() {
           </select>
         </label>
         <label className="flex w-28 flex-col gap-1 text-sm">
-          <span className="text-zinc-600 dark:text-zinc-400">Pantry level</span>
+          <span className="text-muted">Pantry level</span>
           <select
             value={safeLevel}
             onChange={(e) => setLevel(Number(e.target.value))}
-            className="h-10 rounded-md border border-zinc-300 bg-background px-3 dark:border-zinc-700"
+            className="h-10 rounded-md border border-line bg-background px-3"
           >
             {Array.from({ length: levels }, (_, i) => (
               <option key={i + 1} value={i + 1}>
@@ -159,7 +159,7 @@ export function ScannerClient() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+        <section className="overflow-hidden rounded-xl border border-line bg-card">
           <div className="relative bg-black">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video
@@ -208,14 +208,14 @@ export function ScannerClient() {
                 type="button"
                 onClick={capture}
                 disabled={phase === "sending"}
-                className="h-11 flex-1 rounded-md bg-[#0e2a47] text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                className="h-11 flex-1 rounded-md bg-brand text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
               >
                 {phase === "sending" ? "Reading LCD…" : "◎ Scan LCD"}
               </button>
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="h-11 rounded-md border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                className="h-11 rounded-md border border-line px-4 text-sm font-medium hover:bg-sand"
               >
                 Upload instead
               </button>
@@ -233,22 +233,22 @@ export function ScannerClient() {
           )}
         </section>
 
-        <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 p-5 font-mono text-sm dark:border-zinc-800">
+        <section className="flex flex-col gap-3 rounded-xl border border-line bg-card p-5 font-mono text-sm">
           <h2 className="font-sans font-semibold">Cloud endpoint</h2>
           <dl className="flex flex-col gap-2">
             <div className="flex justify-between gap-2">
-              <dt className="text-zinc-500">scale photo</dt>
+              <dt className="text-muted">scale photo</dt>
               <dd>{shotUrl ? "captured ✓" : "…"}</dd>
             </div>
             <div className="flex justify-between gap-2">
-              <dt className="text-zinc-500">phone ocr</dt>
+              <dt className="text-muted">phone ocr</dt>
               <dd className="tabular-nums">
                 {result ? `${result.kg.toFixed(2)} kg` : "…"}
               </dd>
             </div>
             <div className="flex justify-between gap-2">
-              <dt className="text-zinc-500">upload</dt>
-              <dd className="text-emerald-600 dark:text-emerald-400">
+              <dt className="text-muted">upload</dt>
+              <dd className="text-pine">
                 {result ? "sent ✓" : "…"}
               </dd>
             </div>
@@ -258,11 +258,11 @@ export function ScannerClient() {
             <img
               src={shotUrl}
               alt="Captured scale LCD"
-              className="mt-1 max-h-48 rounded-lg border border-zinc-200 object-contain dark:border-zinc-800"
+              className="mt-1 max-h-48 rounded-lg border border-line object-contain"
             />
           )}
           {result && (
-            <p className="font-sans text-sm text-zinc-500">
+            <p className="font-sans text-sm text-muted">
               {result.pantry ?? bin?.name} now reads {result.kg.toFixed(2)} kg ·{" "}
               <Link href="/dashboard" className="underline">
                 View on dashboard →
@@ -270,7 +270,7 @@ export function ScannerClient() {
             </p>
           )}
           {error && (
-            <p className="rounded-md bg-red-50 px-3 py-2 font-sans text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+            <p className="rounded-md bg-tint-ember px-3 py-2 font-sans text-sm text-ember">
               {error}
             </p>
           )}

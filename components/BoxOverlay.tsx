@@ -15,7 +15,7 @@ type Props = {
 // so box coordinates from the Space map directly without manual scaling.
 export function BoxOverlay({ src, lines, size, activeIndex, onActiveChange, onLoad }: Props) {
   return (
-    <div className="relative w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+    <div className="relative w-full overflow-hidden rounded-lg border border-line">
       {/* eslint-disable-next-line @next/next/no-img-element -- local blob URL preview */}
       <img
         src={src}
@@ -38,8 +38,8 @@ export function BoxOverlay({ src, lines, size, activeIndex, onActiveChange, onLo
               vectorEffect="non-scaling-stroke"
               className={
                 i === activeIndex
-                  ? "fill-amber-400/35 stroke-amber-500 stroke-[3px]"
-                  : "fill-sky-400/10 stroke-sky-500 stroke-[1.5px]"
+                  ? "fill-gold/35 stroke-harvest stroke-[3px]"
+                  : "fill-brand/10 stroke-brand stroke-[1.5px]"
               }
               onMouseEnter={() => onActiveChange(i)}
               onMouseLeave={() => onActiveChange(null)}

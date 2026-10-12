@@ -112,12 +112,12 @@ export function OcrUploader() {
           }}
           className={`flex min-h-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
             dragging
-              ? "border-sky-500 bg-sky-50 dark:bg-sky-950/30"
-              : "border-zinc-300 hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600"
+              ? "border-brand bg-brand/5"
+              : "border-line hover:border-muted"
           }`}
         >
           <p className="font-medium">{file ? file.name : "Drop an image here or click to browse"}</p>
-          <p className="text-sm text-zinc-500">PNG, JPEG or WebP, up to 4 MB</p>
+          <p className="text-sm text-muted">PNG, JPEG or WebP, up to 4 MB</p>
           <input
             ref={inputRef}
             type="file"
@@ -132,11 +132,11 @@ export function OcrUploader() {
 
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-600 dark:text-zinc-400">Language</span>
+            <span className="text-muted">Language</span>
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value as Lang)}
-              className="h-10 rounded-md border border-zinc-300 bg-background px-3 dark:border-zinc-700"
+              className="h-10 rounded-md border border-line bg-background px-3"
             >
               {LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>
@@ -156,12 +156,12 @@ export function OcrUploader() {
         </div>
 
         {status === "loading" && elapsed >= 10 && (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted">
             The OCR Space may be waking up from sleep. The first request can take up to a minute.
           </p>
         )}
         {error && (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+          <p className="rounded-md bg-tint-ember px-3 py-2 text-sm text-ember">
             {error}
           </p>
         )}
@@ -187,7 +187,7 @@ export function OcrUploader() {
             <button
               type="button"
               onClick={copyAll}
-              className="rounded-md border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+              className="rounded-md border border-line px-3 py-1 text-sm hover:bg-sand"
             >
               {copied ? "Copied" : "Copy all"}
             </button>
@@ -195,21 +195,21 @@ export function OcrUploader() {
         </div>
 
         {status === "done" && lines.length === 0 && (
-          <p className="text-sm text-zinc-500">No text found in this image.</p>
+          <p className="text-sm text-muted">No text found in this image.</p>
         )}
         {status !== "done" && lines.length === 0 && (
-          <p className="text-sm text-zinc-500">Extracted text will appear here.</p>
+          <p className="text-sm text-muted">Extracted text will appear here.</p>
         )}
 
         {lines.length > 0 && (
-          <ol className="flex flex-col divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+          <ol className="flex flex-col divide-y divide-line rounded-lg border border-line bg-card">
             {lines.map((line, i) => (
               <li
                 key={i}
                 onMouseEnter={() => setActiveIndex(i)}
                 onMouseLeave={() => setActiveIndex(null)}
                 className={`px-3 py-2 text-sm transition-colors ${
-                  i === activeIndex ? "bg-amber-100 dark:bg-amber-900/30" : ""
+                  i === activeIndex ? "bg-tint-ochre" : ""
                 }`}
               >
                 {line.text}

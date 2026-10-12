@@ -29,13 +29,13 @@ export function MonthlyChart({ currentTotalKg }: { currentTotalKg: number }) {
   );
 
   return (
-    <section className="rounded-lg border border-zinc-200 p-5 dark:border-zinc-800">
-      <h2 className="text-sm text-zinc-500">Repurposed this month</h2>
+    <section className="rounded-lg border border-line bg-card p-5">
+      <h2 className="text-sm text-muted">Repurposed this month</h2>
       <p className="mt-1 text-3xl font-bold">{currentTotalKg.toFixed(1)} kg</p>
       <div className="mt-3">
         <Chart definition={definition} height={260} ariaLabel="Monthly coffee grounds" />
       </div>
-      <p className="mt-2 text-sm text-zinc-500">Coffee grounds diverted from landfill, by month.</p>
+      <p className="mt-2 text-sm text-muted">Coffee grounds diverted from landfill, by month.</p>
     </section>
   );
 }
