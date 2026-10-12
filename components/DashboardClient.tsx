@@ -1,27 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BinCard } from "@/components/BinCard";
 import { CampusMap } from "@/components/CampusMap";
 import { MonthlyChart } from "@/components/MonthlyChart";
+import { ActivityFeed, CollectionQueue, Leaderboard } from "@/components/FleetPanels";
 import {
-  INITIAL_BINS,
-  parseKgFromOcrText,
-  statusFor,
-  type Bin,
-} from "@/lib/bins";
+  EVENT_LIMIT,
+  depositsToday,
+  etaText,
+  ranking,
+  repurposedMonth,
+  seedEvents,
+  velocityKgPerDay,
+  type BinEvent,
+} from "@/lib/analytics";
+import { BIN_CAPACITY_KG, INITIAL_BINS, statusFor, type Bin } from "@/lib/bins";
 
-const STORAGE_KEY = "smartbin-weights-v1";
-
-type Filter = "all" | "needs" | "ok";
+const BINS_KEY = "smartbin-weights-v1";
+const EVENTS_KEY = "smartbin-events-v1";
 
 function loadBins(): Bin[] {
   if (typeof window === "undefined") return INITIAL_BINS;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return INITIAL_BINS;
-    const parsed = JSON.parse(raw) as Bin[];
+    const parsed = JSON.parse(window.localStorage.getItem(BINS_KEY) ?? "null") as Bin[];
     // ponytail: shape-check by id set, full schema validation if contract drifts
     const ids = new Set(INITIAL_BINS.map((b) => b.id));
     if (Array.isArray(parsed) && parsed.every((b) => b && ids.has(b.id))) return parsed;
@@ -31,22 +34,111 @@ function loadBins(): Bin[] {
   }
 }
 
+function loadEvents(): BinEvent[] {
+  if (typeof window === "undefined") return seedEvents();
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(EVENTS_KEY) ?? "null") as BinEvent[];
+    if (
+      Array.isArray(parsed) &&
+      parsed.every((e) => e && typeof e.at === "string" && typeof e.kg === "number")
+    )
+      return parsed;
+    return seedEvents();
+  } catch {
+    return seedEvents();
+  }
+}
+
+function rid(): string {
+  return `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6)}`;
+}
+
+type Filter = "all" | "needs" | "ok";
+
 export function DashboardClient() {
   const [bins, setBins] = useState<Bin[]>(loadBins);
+  // Events + clock populate after mount: Date.now() during static prerender is an error.
+  const [events, setEvents] = useState<BinEvent[]>([]);
+  const [now, setNow] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState("bin-soe");
   const [filter, setFilter] = useState<Filter>("all");
-  const [ocrText, setOcrText] = useState("");
-  const [ocrBinId, setOcrBinId] = useState(INITIAL_BINS[0]?.id ?? "");
-  const [ocrMsg, setOcrMsg] = useState<string | null>(null);
+  const [demoOn, setDemoOn] = useState(false);
   const [syncedAt, setSyncedAt] = useState<string | null>(null);
+  const binsRef = useRef(bins);
+  binsRef.current = bins;
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(bins));
+      window.localStorage.setItem(BINS_KEY, JSON.stringify(bins));
     } catch {
       // storage full/blocked — dashboard still works in-memory
     }
   }, [bins]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(EVENTS_KEY, JSON.stringify(events.slice(0, EVENT_LIMIT)));
+    } catch {
+      // storage full/blocked — dashboard still works in-memory
+    }
+  }, [events]);
+
+  function pushEvent(e: BinEvent) {
+    setEvents((prev) => [e, ...prev].slice(0, EVENT_LIMIT));
+  }
+
+  function collect(id: string) {
+    const b = binsRef.current.find((x) => x.id === id);
+    if (!b || b.weightKg <= 0) return;
+    const at = new Date().toISOString();
+    pushEvent({ id: rid(), at, binId: id, type: "collect", kg: b.weightKg });
+    setBins((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, weightKg: 0, updatedAt: at } : x)),
+    );
+  }
+
+  function select(id: string) {
+    setSelectedId(id);
+    requestAnimationFrame(() =>
+      document
+        .getElementById(`bin-${id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
+  }
+
+  function resetDemo() {
+    setDemoOn(false);
+    setBins(INITIAL_BINS);
+    setEvents(seedEvents());
+  }
+
+  // Single-button demo: live deposits, auto-collect when 2+ bins are full.
+  useEffect(() => {
+    if (!demoOn) return;
+    const id = setInterval(() => {
+      const prev = binsRef.current;
+      const cands = prev.filter((b) => b.weightKg < BIN_CAPACITY_KG);
+      if (!cands.length) {
+        setDemoOn(false);
+        return;
+      }
+      const pick = cands[Math.floor(Math.random() * cands.length)];
+      const add = Math.round((0.1 + Math.random() * 0.3) * 100) / 100;
+      const w = Math.min(BIN_CAPACITY_KG, Math.round((pick.weightKg + add) * 100) / 100);
+      const at = new Date().toISOString();
+      pushEvent({ id: rid(), at, binId: pick.id, type: "deposit", kg: Math.round((w - pick.weightKg) * 100) / 100 });
+      let next = prev.map((b) => (b.id === pick.id ? { ...b, weightKg: w, updatedAt: at } : b));
+      const fulls = next.filter((b) => b.weightKg >= BIN_CAPACITY_KG);
+      if (fulls.length >= 2) {
+        const oldest = [...fulls].sort((a, b) => (a.updatedAt < b.updatedAt ? -1 : 1))[0];
+        pushEvent({ id: rid(), at, binId: oldest.id, type: "collect", kg: oldest.weightKg });
+        next = next.map((b) => (b.id === oldest.id ? { ...b, weightKg: 0, updatedAt: at } : b));
+      }
+      setBins(next);
+    }, 1500);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoOn]);
 
   async function syncFromServer() {
     try {
@@ -70,54 +162,34 @@ export function DashboardClient() {
   }
 
   useEffect(() => {
+    setEvents(loadEvents());
+    setNow(Date.now());
     syncFromServer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function handleChange(id: string, kg: number) {
-    setBins((prev) =>
-      prev.map((b) =>
-        b.id === id
-          ? { ...b, weightKg: Math.min(5, Math.max(0, kg)), updatedAt: new Date().toISOString() }
-          : b,
-      ),
-    );
-  }
-
-  function deposit(id: string) {
-    const b = bins.find((x) => x.id === id);
-    if (b) handleChange(id, b.weightKg + 0.3);
-  }
-
-  function collect(id: string) {
-    handleChange(id, 0);
-  }
-
-  function select(id: string) {
-    setSelectedId(id);
-    requestAnimationFrame(() =>
-      document
-        .getElementById(`bin-${id}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
-    );
-  }
-
-  function applyOcr() {
-    const kg = parseKgFromOcrText(ocrText);
-    if (kg == null) {
-      setOcrMsg("No weight found in that text — try e.g. “2.40 kg”.");
-      return;
-    }
-    handleChange(ocrBinId, kg);
-    setOcrMsg(`Set to ${kg.toFixed(2)} kg.`);
-    select(ocrBinId);
-  }
 
   const total = bins.reduce((s, b) => s + b.weightKg, 0);
   const full = bins.filter((b) => statusFor(b.weightKg) === "full").length;
   const near = bins.filter((b) => statusFor(b.weightKg) === "near").length;
   const needs = full + near;
+  const repurposed = now === null ? 0 : repurposedMonth(events, now);
+  const today = now === null ? 0 : depositsToday(events, now);
 
+  const etas = new Map(
+    bins.map(
+      (b) =>
+        [b.id, now === null ? null : etaText(b.weightKg, velocityKgPerDay(events, b.id, now))] as const,
+    ),
+  );
+  const queue = bins
+    .filter((b) => statusFor(b.weightKg) !== "ok")
+    .sort((a, b) =>
+      statusFor(a.weightKg) === statusFor(b.weightKg)
+        ? b.weightKg - a.weightKg
+        : statusFor(a.weightKg) === "full"
+          ? -1
+          : 1,
+    );
   const visible = bins.filter((b) =>
     filter === "all"
       ? true
@@ -125,30 +197,47 @@ export function DashboardClient() {
         ? statusFor(b.weightKg) !== "ok"
         : statusFor(b.weightKg) === "ok",
   );
-  const dimmed = new Set(
-    bins.filter((b) => !visible.includes(b)).map((b) => b.id),
-  );
+  const dimmed = new Set(bins.filter((b) => !visible.includes(b)).map((b) => b.id));
 
   const stats: Array<[string, string]> = [
     ["Fleet total", `${total.toFixed(2)} kg`],
-    ["Full bins", String(full)],
-    ["Near-full bins", String(near)],
-    ["Month total", `${total.toFixed(2)} kg`],
+    ["Repurposed · month", `${repurposed.toFixed(1)} kg`],
+    ["Needs collection", String(needs)],
+    ["Deposits today", String(today)],
   ];
 
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-xl bg-[#0e2a47] text-white">
         <div className="h-1 bg-[#c5a253]" />
-        <div className="px-5 py-6 sm:px-8">
-          <p className="text-xs font-semibold tracking-[0.2em] text-[#c5a253]">
-            SMU SUSTAINABILITY · CAMPUS COFFEE LOOP
-          </p>
-          <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Smart Bin Dashboard</h1>
-          <p className="mt-1 text-sm text-white/70">
-            Spent coffee grounds, weighed live across seven pantries. Click a map pin
-            to inspect a bin.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3 px-5 py-6 sm:px-8">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.2em] text-[#c5a253]">
+              SMU SUSTAINABILITY · CAMPUS COFFEE LOOP
+            </p>
+            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Smart Bin Dashboard</h1>
+            <p className="mt-1 text-sm text-white/70">
+              Spent coffee grounds, weighed live across seven pantries.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setDemoOn((v) => !v)}
+              className={`h-10 rounded-md px-4 text-sm font-semibold ${
+                demoOn ? "bg-[#c5a253] text-[#0e2a47]" : "bg-white text-[#0e2a47]"
+              }`}
+            >
+              {demoOn ? "⏸ Pause live day" : "▶ Simulate live day"}
+            </button>
+            <button
+              type="button"
+              onClick={resetDemo}
+              className="h-10 rounded-md border border-white/30 px-3 text-sm text-white/80 hover:bg-white/10"
+            >
+              Reset
+            </button>
+          </div>
         </div>
       </div>
 
@@ -159,47 +248,63 @@ export function DashboardClient() {
             className="rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-800"
           >
             <dt className="text-sm text-zinc-500">{label}</dt>
-            <dd className="text-xl font-semibold tabular-nums">{value}</dd>
+            <dd className="text-xl font-semibold tabular-nums">
+              {value}
+              {label === "Needs collection" && needs > 0 && (
+                <span className="ml-2 inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
+              )}
+            </dd>
           </div>
         ))}
       </dl>
 
-      <section>
-        <div className="mb-3 flex flex-wrap gap-2">
-          {(
-            [
-              ["all", "All bins"],
-              ["needs", `Needs collection (${needs})`],
-              ["ok", "OK"],
-            ] as Array<[Filter, string]>
-          ).map(([f, label]) => (
+      <section className="grid gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            {(
+              [
+                ["all", "All bins"],
+                ["needs", `Needs collection (${needs})`],
+                ["ok", "OK"],
+              ] as Array<[Filter, string]>
+            ).map(([f, label]) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFilter(f)}
+                className={`rounded-full px-3 py-1 text-sm font-medium ${
+                  filter === f
+                    ? "bg-[#0e2a47] text-white"
+                    : "border border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
             <button
-              key={f}
               type="button"
-              onClick={() => setFilter(f)}
-              className={`rounded-full px-3 py-1 text-sm font-medium ${
-                filter === f
-                  ? "bg-[#0e2a47] text-white"
-                  : "border border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-              }`}
+              onClick={syncFromServer}
+              className="ml-auto rounded-full border border-zinc-300 px-3 py-1 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
             >
-              {label}
+              ↻ Sync{syncedAt ? ` · ${syncedAt}` : ""}
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={syncFromServer}
-            className="ml-auto rounded-full border border-zinc-300 px-3 py-1 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-          >
-            ↻ Sync{syncedAt ? ` · ${syncedAt}` : ""}
-          </button>
+          </div>
+          <CampusMap
+            bins={bins}
+            selectedId={selectedId}
+            dimmedIds={dimmed}
+            onSelect={select}
+          />
         </div>
-        <CampusMap
-          bins={bins}
-          selectedId={selectedId}
-          dimmedIds={dimmed}
-          onSelect={select}
-        />
+        <div className="flex flex-col gap-2 lg:col-span-2">
+          <h2 className="font-semibold">
+            Collection queue{" "}
+            <span className="font-normal text-zinc-500">
+              {demoOn ? "· live" : "· sorted by urgency"}
+            </span>
+          </h2>
+          <CollectionQueue bins={queue} etas={etas} onCollect={collect} onSelect={select} />
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -208,9 +313,9 @@ export function DashboardClient() {
             key={bin.id}
             bin={bin}
             selected={bin.id === selectedId}
-            onChange={handleChange}
-            onDeposit={deposit}
+            eta={etas.get(bin.id) ?? null}
             onCollect={collect}
+            onSelect={setSelectedId}
           />
         ))}
       </section>
@@ -220,44 +325,16 @@ export function DashboardClient() {
         </p>
       )}
 
-      <MonthlyChart currentTotalKg={total} />
-
-      <section className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-        <h2 className="font-semibold">Fill from OCR text</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={ocrBinId}
-            onChange={(e) => setOcrBinId(e.target.value)}
-            className="h-10 rounded-md border border-zinc-300 bg-background px-3 text-sm dark:border-zinc-700"
-            aria-label="Bin for OCR weight"
-          >
-            {bins.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.short})
-              </option>
-            ))}
-          </select>
-          <input
-            value={ocrText}
-            onChange={(e) => setOcrText(e.target.value)}
-            placeholder="Paste OCR line (e.g. 2.40 kg)"
-            className="h-10 min-w-52 flex-1 rounded-md border border-zinc-300 bg-background px-3 text-sm dark:border-zinc-700"
-          />
-          <button
-            type="button"
-            onClick={applyOcr}
-            className="h-10 rounded-md bg-foreground px-4 text-sm font-medium text-background"
-          >
-            Apply
-          </button>
-        </div>
-        {ocrMsg && <p className="text-sm text-zinc-500">{ocrMsg}</p>}
-        <p className="text-sm text-zinc-500">
-          Need the real thing? <Link href="/" className="underline">Upload a scale photo</Link>,{" "}
-          <Link href="/scan" className="underline">scan live with the camera</Link>, or
-          paste a line here.
-        </p>
+      <section className="grid gap-4 lg:grid-cols-3">
+        <MonthlyChart currentTotalKg={repurposed} />
+        <Leaderboard ranking={ranking(events)} bins={bins} />
+        <ActivityFeed events={events} bins={bins} now={now} />
       </section>
+
+      <p className="text-sm text-zinc-500">
+        Weighing a bin by hand? <Link href="/scan" className="underline">Scan it with the camera</Link> or{" "}
+        <Link href="/" className="underline">upload a scale photo</Link>.
+      </p>
     </div>
   );
 }
