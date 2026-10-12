@@ -7,6 +7,8 @@ export type Reading = {
   source: ReadingSource;
   /** Pantry the weighed grounds came from, e.g. "SCIS · L3" (scan provenance). */
   pantry?: string;
+  /** Cleaner whose pass was scanned before the weigh (audit trail). */
+  cleanerId?: string;
 };
 
 // ponytail: in-memory — readings vanish on redeploy/scale-out; move to Vercel KV/Postgres when history must survive

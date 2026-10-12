@@ -24,6 +24,77 @@
   --color-roof: #b23c26;
   --color-ember: #9c3f27;
   --color-tint-ember: #f5dfd3;
+
+  /* Cleaner app: pass scanner + auto-capture camera */
+  --animate-scanline: scanline 2.2s ease-in-out infinite;
+  --animate-shutter: shutter 0.5s ease-out forwards;
+  --animate-pass-in: pass-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  --animate-rise: rise 0.35s ease-out both;
+  /* Selected campus-map pin */
+  --animate-pin-blink: pin-blink 1.1s ease-in-out infinite;
+
+  @keyframes pin-blink {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow:
+        0 0 0 3px #fff,
+        0 0 0 6px var(--color-brand);
+    }
+    50% {
+      opacity: 0.4;
+      box-shadow:
+        0 0 0 3px #fff,
+        0 0 0 16px rgb(14 42 71 / 0);
+    }
+  }
+
+  @keyframes scanline {
+    0%,
+    100% {
+      top: 8%;
+    }
+    50% {
+      top: 88%;
+    }
+  }
+  @keyframes shutter {
+    from {
+      opacity: 0.95;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes pass-in {
+    from {
+      transform: translateY(70%) rotate(-6deg) scale(0.9);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0) rotate(0) scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes rise {
+    from {
+      transform: translateY(6px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 @theme inline {

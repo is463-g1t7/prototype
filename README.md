@@ -48,6 +48,23 @@ input), 503 (Space waking up) or 502 (other upstream failure).
 - `components/OcrUploader.tsx`: upload form and results list
 - `components/BoxOverlay.tsx`: draws detected text boxes over the image
 
+## Cleaner drop-off flow (demo)
+
+1. `/cleaner`: scan a staff pass. Tap a demo pass, or on Chrome for Android/macOS scan a QR
+   from `/passes` with the camera.
+2. `/cleaner/building`: pick the building on the campus map, then the pantry level.
+3. `/cleaner/weigh`: the "overhead camera" auto-captures one of `public/weighing_scale_{1,2,3}.jpeg`
+   (4.2 / 5.7 / 8.3 kg, a frame heavier than the bin's current total), sends it to
+   `/api/scale-photo`, and logs the increase against the cleaner and pantry.
+
+For the presentation, open `/dashboard` and click **Cleaner app ↗**. Drop-offs logged in the
+cleaner tab appear on the dashboard live: a banner, the bin's new weight, and a row in the
+building's **audit trail** (filterable, CSV export). State lives in the browser's localStorage,
+so both tabs must be in the same browser. **Reset** on the dashboard restores the seed data.
+
+`lib/cleaners.ts` holds the demo roster, `lib/scales.ts` the scale frames, and `lib/store.ts`
+the shared localStorage store.
+
 ## Notes
 
 - The free Space sleeps when idle. The first request afterwards can take up to a minute

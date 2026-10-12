@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { useState } from "react";
 import { ago, type BinEvent, type PantryStat } from "@/lib/analytics";
 import type { Bin } from "@/lib/bins";
 import { BIN_CAPACITY_KG, levelsFor } from "@/lib/bins";
+import { CLEANERS, cleanerById } from "@/lib/cleaners";
 
 export function CollectionQueue({
   bins,
@@ -113,6 +115,9 @@ export function ActivityFeed({
                 <>
                   <span className="font-semibold tabular-nums">+{e.kg.toFixed(1)} kg</span> →{" "}
                   {where(e)}
+                  {cleanerById(e.cleanerId) && (
+                    <span className="text-muted"> · {cleanerById(e.cleanerId)?.name}</span>
+                  )}
                 </>
               )}
             </span>
@@ -134,8 +139,9 @@ export function CleanerPanel({
 }: {
   bins: Bin[];
   initialBinId: string;
-  onDeposit: (binId: string, level: number, kg: number) => void;
+  onDeposit: (binId: string, level: number, kg: number, cleanerId: string) => void;
 }) {
+  const [cleanerId, setCleanerId] = useState(CLEANERS[0].id);
   const [binId, setBinId] = useState(initialBinId);
   const [level, setLevel] = useState(2);
   const [kg, setKg] = useState(0.3);
@@ -147,8 +153,28 @@ export function CleanerPanel({
   return (
     <section className="rounded-xl border border-line bg-card p-4">
       <h2 className="font-semibold">Empty pantry → bin</h2>
-      <p className="text-xs text-muted">Cleaners log which pantry they cleared.</p>
+      <p className="text-xs text-muted">
+        Hand-log a drop-off, or use the{" "}
+        <Link href="/cleaner" target="_blank" rel="noreferrer" className="underline">
+          cleaner app
+        </Link>{" "}
+        to scan a pass and weigh by camera.
+      </p>
       <div className="mt-3 flex flex-col gap-2">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs text-muted">Cleaner</span>
+          <select
+            value={cleanerId}
+            onChange={(e) => setCleanerId(e.target.value)}
+            className="h-10 rounded-md border border-line bg-background px-2 text-sm"
+          >
+            {CLEANERS.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} · {c.pass}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-xs text-muted">Building bin</span>
           <select
@@ -186,7 +212,7 @@ export function CleanerPanel({
             <input
               type="number"
               min={0.05}
-              max={5}
+              max={BIN_CAPACITY_KG}
               step={0.05}
               value={kg}
               onChange={(e) => setKg(Number(e.target.value))}
@@ -212,7 +238,7 @@ export function CleanerPanel({
         </div>
         <button
           type="button"
-          onClick={() => onDeposit(bin.id, safeLevel, kg)}
+          onClick={() => onDeposit(bin.id, safeLevel, kg, cleanerId)}
           disabled={kg <= 0 || binFull}
           className="h-10 rounded-md bg-brand text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
         >

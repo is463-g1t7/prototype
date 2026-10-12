@@ -1,4 +1,9 @@
+import { BIN_CAPACITY_KG } from "./bins";
+
 export type BinEventType = "deposit" | "collect";
+
+/** How a deposit's weight was captured: scale-LCD OCR, labelled OCR fallback, hand-typed, or demo sim. */
+export type EventSource = "ocr" | "reference" | "manual" | "demo";
 
 export type BinEvent = {
   id: string;
@@ -10,6 +15,13 @@ export type BinEvent = {
   pantry?: string;
   type: BinEventType;
   kg: number;
+  /** Audit trail: who disposed / collected, and the bin total either side of it. */
+  cleanerId?: string;
+  source?: EventSource;
+  beforeKg?: number;
+  afterKg?: number;
+  /** Scale frame the OCR read, kept as evidence. */
+  photo?: string;
 };
 
 export const EVENT_LIMIT = 200;
@@ -22,23 +34,47 @@ function ev(
   binId: string,
   type: BinEventType,
   kg: number,
-  level?: number,
-  pantry?: string,
+  extra: Partial<BinEvent> = {},
 ): BinEvent {
-  return { id, at: new Date(Date.now() - daysAgo * DAY).toISOString(), binId, type, kg, level, pantry };
+  return { id, at: new Date(Date.now() - daysAgo * DAY).toISOString(), binId, type, kg, ...extra };
 }
 
-/** Newest first. Enough history that velocity, queue and leaderboard render on first load. */
+function dep(
+  id: string,
+  daysAgo: number,
+  binId: string,
+  short: string,
+  level: number,
+  cleanerId: string,
+  beforeKg: number,
+  afterKg: number,
+  source: EventSource = "ocr",
+): BinEvent {
+  return ev(id, daysAgo, binId, "deposit", Math.round((afterKg - beforeKg) * 100) / 100, {
+    level,
+    pantry: `${short} · L${level}`,
+    cleanerId,
+    source,
+    beforeKg,
+    afterKg,
+  });
+}
+
+/** Newest first. Enough history that velocity, queue, leaderboard and audit trail render on first load. */
 export function seedEvents(): BinEvent[] {
   return [
-    ev("seed-1", 0.1, "bin-lib", "deposit", 0.3, 4, "LIB · L4"),
-    ev("seed-2", 0.3, "bin-scis", "deposit", 0.2, 3, "SCIS · L3"),
-    ev("seed-3", 0.6, "bin-soa", "deposit", 0.4, 2, "SOA · L2"),
-    ev("seed-4", 1.2, "bin-soss", "deposit", 0.6, 1, "SOSS · L1"),
-    ev("seed-5", 1.8, "bin-lkcsb", "deposit", 0.9, 2, "LKCSB · L2"),
-    ev("seed-6", 2.5, "bin-soe", "deposit", 1.2, 3, "SOE · L3"),
-    ev("seed-7", 3.2, "bin-lkcsb", "collect", 4.5),
-    ev("seed-8", 4.6, "bin-soe", "collect", 4.8),
+    dep("seed-1", 0.1, "bin-lib", "LIB", 4, "c-0142", 1.6, 2.2),
+    dep("seed-2", 0.3, "bin-scis", "SCIS", 3, "c-0217", 0.7, 1.2),
+    dep("seed-3", 0.6, "bin-soa", "SOA", 2, "c-0388", 2.3, 3.1, "manual"),
+    dep("seed-4", 0.9, "bin-yphsl", "YPHSL", 5, "c-0388", 2.7, 3.6),
+    dep("seed-5", 1.2, "bin-soss", "SOSS", 1, "c-0451", 5.3, 6.4),
+    dep("seed-6", 1.5, "bin-scis", "SCIS", 2, "c-0451", 0, 0.7),
+    dep("seed-7", 1.8, "bin-lkcsb", "LKCSB", 2, "c-0142", 7.0, 8.6),
+    dep("seed-8", 2.1, "bin-soa", "SOA", 4, "c-0217", 1.5, 2.3),
+    dep("seed-9", 2.5, "bin-soe", "SOE", 3, "c-0217", 8.0, 10.0),
+    ev("seed-10", 2.8, "bin-scis", "collect", 9.2, { cleanerId: "c-0451", beforeKg: 9.2, afterKg: 0 }),
+    ev("seed-11", 3.2, "bin-lkcsb", "collect", 9.1, { cleanerId: "c-0142", beforeKg: 9.1, afterKg: 0 }),
+    ev("seed-12", 4.6, "bin-soe", "collect", 9.6, { cleanerId: "c-0217", beforeKg: 9.6, afterKg: 0 }),
   ];
 }
 
@@ -69,9 +105,9 @@ export function velocityKgPerDay(events: BinEvent[], binId: string, now = Date.n
 }
 
 export function etaText(weightKg: number, vel: number | null): string | null {
-  if (weightKg >= 5) return "FULL";
+  if (weightKg >= BIN_CAPACITY_KG) return "FULL";
   if (vel == null || vel <= 0) return null;
-  const days = (5 - weightKg) / vel;
+  const days = (BIN_CAPACITY_KG - weightKg) / vel;
   if (days < 1 / 24) return "full in <1h";
   if (days < 1) return `full in ~${Math.max(1, Math.round(days * 24))}h`;
   if (days < 30) return `full in ~${Math.round(days)}d`;

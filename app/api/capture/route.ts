@@ -1,4 +1,4 @@
-import { INITIAL_BINS, parseKgFromOcrText } from "@/lib/bins";
+import { BIN_CAPACITY_KG, INITIAL_BINS, parseKgFromOcrText } from "@/lib/bins";
 import { OcrUpstreamError, runOcr } from "@/lib/ocr";
 import { addReading, latestPerBin } from "@/lib/readings";
 
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
 
   const prev = latestPerBin()[binId]?.weightKg ?? 2.4;
   const weightKg =
-    Math.round(Math.min(5, Math.max(0, prev + (Math.random() - 0.35) * 0.2)) * 100) / 100;
+    Math.round(Math.min(BIN_CAPACITY_KG, Math.max(0, prev + (Math.random() - 0.35) * 0.2)) * 100) / 100;
   const reading = addReading({
     binId,
     weightKg,
