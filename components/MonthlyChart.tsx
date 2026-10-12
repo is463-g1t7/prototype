@@ -13,11 +13,11 @@ export function MonthlyChart({ currentTotalKg }: { currentTotalKg: number }) {
         marks: [
           barY(
             [
-              { month: "Aug", kg: 58.4 },
-              { month: "Sep", kg: 71.2 },
-              { month: "Oct", kg: currentTotalKg },
+              { month: "Aug", kg: 58.4, fill: "#c5a253" },
+              { month: "Sep", kg: 71.2, fill: "#c5a253" },
+              { month: "Oct", kg: currentTotalKg, fill: "#4c7f3c" },
             ],
-            { x: "month", y: "kg" },
+            { x: "month", y: "kg", fill: "fill" },
           ),
         ],
         scales: {
