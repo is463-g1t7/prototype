@@ -12,8 +12,6 @@ on:
 
 jobs:
   capture:
-    # stays green until APP_URL is configured in repo secrets
-    if: ${{ secrets.APP_URL != '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -22,7 +20,12 @@ jobs:
         bin: [bin-soa, bin-lkcsb, bin-soe, bin-scis, bin-yphsl, bin-soss, bin-lib]
     steps:
       - name: Trigger capture for ${{ matrix.bin }}
-        run: >
-          curl -sS -f -m 90
-          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-          "${{ secrets.APP_URL }}/api/capture?bin=${{ matrix.bin }}"
+        # stays green until APP_URL is configured in repo secrets
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "APP_URL not configured — skipping."
+            exit 0
+          fi
+          curl -sS -f -m 90 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/capture?bin=${{ matrix.bin }}"
