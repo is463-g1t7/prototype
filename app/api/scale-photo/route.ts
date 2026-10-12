@@ -1,5 +1,5 @@
 import { ACCEPTED_TYPES, MAX_BYTES } from "@/lib/languages";
-import { INITIAL_BINS, parseKgFromOcrText } from "@/lib/bins";
+import { INITIAL_BINS, levelsFor, pantryLabel, parseKgFromOcrText } from "@/lib/bins";
 import { OcrUpstreamError, runOcr } from "@/lib/ocr";
 import { addReading } from "@/lib/readings";
 
@@ -20,8 +20,18 @@ export async function POST(request: Request) {
   }
 
   const bin = form.get("bin");
-  if (typeof bin !== "string" || !INITIAL_BINS.some((b) => b.id === bin)) {
+  const found = INITIAL_BINS.find((b) => b.id === bin);
+  if (typeof bin !== "string" || !found) {
     return Response.json({ error: "Unknown bin." }, { status: 400 });
+  }
+  // Optional pantry provenance: which level the emptied grounds came from.
+  const rawLevel = form.get("level");
+  let level: number | undefined;
+  if (typeof rawLevel === "string" && rawLevel !== "") {
+    level = Number(rawLevel);
+    if (!Number.isInteger(level) || level < 1 || level > levelsFor(found.id)) {
+      return Response.json({ error: "Unknown pantry level." }, { status: 400 });
+    }
   }
   const image = form.get("image");
   if (!(image instanceof File) || image.size === 0) {
@@ -45,6 +55,7 @@ export async function POST(request: Request) {
       weightKg: kg,
       at: new Date().toISOString(),
       source: "ocr",
+      ...(level != null ? { pantry: pantryLabel(found, level) } : {}),
     });
     return Response.json({ reading }, { status: 201 });
   } catch (err) {

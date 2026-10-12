@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { INITIAL_BINS } from "@/lib/bins";
+import { INITIAL_BINS, levelsFor } from "@/lib/bins";
 
 type Phase = "idle" | "camera" | "sending" | "done";
-type ScanResult = { kg: number; at: string };
+type ScanResult = { kg: number; at: string; pantry: string | null };
 
 export function ScannerClient() {
   const [binId, setBinId] = useState(INITIAL_BINS[0]?.id ?? "");
+  const [level, setLevel] = useState(3);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -54,11 +55,16 @@ export function ScannerClient() {
     const body = new FormData();
     body.append("image", blob, "scale.jpg");
     body.append("bin", binId);
+    body.append("level", String(safeLevel));
     try {
       const res = await fetch("/api/scale-photo", { method: "POST", body });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `Upload failed (${res.status}).`);
-      setResult({ kg: data.reading.weightKg, at: data.reading.at });
+      setResult({
+        kg: data.reading.weightKg,
+        at: data.reading.at,
+        pantry: data.reading.pantry ?? null,
+      });
       setPhase("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
@@ -97,6 +103,8 @@ export function ScannerClient() {
   }
 
   const bin = INITIAL_BINS.find((b) => b.id === binId);
+  const levels = levelsFor(binId);
+  const safeLevel = Math.min(Math.max(1, level), levels);
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,20 +127,36 @@ export function ScannerClient() {
         </div>
       </div>
 
-      <label className="flex max-w-sm flex-col gap-1 text-sm">
-        <span className="text-zinc-600 dark:text-zinc-400">Bin under the scale</span>
-        <select
-          value={binId}
-          onChange={(e) => setBinId(e.target.value)}
-          className="h-10 rounded-md border border-zinc-300 bg-background px-3 dark:border-zinc-700"
-        >
-          {INITIAL_BINS.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name} ({b.short})
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="flex max-w-sm flex-wrap gap-2">
+        <label className="flex min-w-52 flex-1 flex-col gap-1 text-sm">
+          <span className="text-zinc-600 dark:text-zinc-400">Bin under the scale</span>
+          <select
+            value={binId}
+            onChange={(e) => setBinId(e.target.value)}
+            className="h-10 rounded-md border border-zinc-300 bg-background px-3 dark:border-zinc-700"
+          >
+            {INITIAL_BINS.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.short})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex w-28 flex-col gap-1 text-sm">
+          <span className="text-zinc-600 dark:text-zinc-400">Pantry level</span>
+          <select
+            value={safeLevel}
+            onChange={(e) => setLevel(Number(e.target.value))}
+            className="h-10 rounded-md border border-zinc-300 bg-background px-3 dark:border-zinc-700"
+          >
+            {Array.from({ length: levels }, (_, i) => (
+              <option key={i + 1} value={i + 1}>
+                L{i + 1}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -239,7 +263,7 @@ export function ScannerClient() {
           )}
           {result && (
             <p className="font-sans text-sm text-zinc-500">
-              {bin?.name} now reads {result.kg.toFixed(2)} kg ·{" "}
+              {result.pantry ?? bin?.name} now reads {result.kg.toFixed(2)} kg ·{" "}
               <Link href="/dashboard" className="underline">
                 View on dashboard →
               </Link>

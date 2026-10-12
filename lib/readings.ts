@@ -5,6 +5,8 @@ export type Reading = {
   weightKg: number;
   at: string;
   source: ReadingSource;
+  /** Pantry the weighed grounds came from, e.g. "SCIS · L3" (scan provenance). */
+  pantry?: string;
 };
 
 // ponytail: in-memory — readings vanish on redeploy/scale-out; move to Vercel KV/Postgres when history must survive

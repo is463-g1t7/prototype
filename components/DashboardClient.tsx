@@ -5,20 +5,25 @@ import { useEffect, useRef, useState } from "react";
 import { BinCard } from "@/components/BinCard";
 import { CampusMap } from "@/components/CampusMap";
 import { MonthlyChart } from "@/components/MonthlyChart";
-import { ActivityFeed, CollectionQueue, Leaderboard } from "@/components/FleetPanels";
+import { ActivityFeed, CleanerPanel, CollectionQueue, Leaderboard, LevelBreakdown, PantryLeaderboard, PantryWatch } from "@/components/FleetPanels";
 import {
   EVENT_LIMIT,
+  avgCaddyKg,
+  collectionsWeek,
   depositsToday,
   etaText,
+  levelBreakdown,
+  pantriesByKg,
+  quietPantries,
   ranking,
   repurposedMonth,
   seedEvents,
   velocityKgPerDay,
   type BinEvent,
 } from "@/lib/analytics";
-import { BIN_CAPACITY_KG, INITIAL_BINS, statusFor, type Bin } from "@/lib/bins";
+import { BIN_CAPACITY_KG, INITIAL_BINS, levelsFor, pantryLabel, statusFor, totalPantries, type Bin } from "@/lib/bins";
 
-const BINS_KEY = "smartbin-weights-v1";
+const BINS_KEY = "smartbin-weights-v2";
 const EVENTS_KEY = "smartbin-events-v1";
 
 function loadBins(): Bin[] {
@@ -97,6 +102,21 @@ export function DashboardClient() {
     );
   }
 
+  /** Cleaner empties a pantry caddy into the building's smart bin. */
+  function deposit(binId: string, level: number, kg: number) {
+    if (!(kg > 0)) return;
+    const b = binsRef.current.find((x) => x.id === binId);
+    if (!b || b.weightKg >= BIN_CAPACITY_KG) return;
+    const w = Math.min(BIN_CAPACITY_KG, Math.round((b.weightKg + kg) * 100) / 100);
+    const added = Math.round((w - b.weightKg) * 100) / 100;
+    if (added <= 0) return;
+    const at = new Date().toISOString();
+    pushEvent({ id: rid(), at, binId, level, pantry: pantryLabel(b, level), type: "deposit", kg: added });
+    setBins((prev) =>
+      prev.map((x) => (x.id === binId ? { ...x, weightKg: w, updatedAt: at } : x)),
+    );
+  }
+
   function select(id: string) {
     setSelectedId(id);
     requestAnimationFrame(() =>
@@ -126,7 +146,8 @@ export function DashboardClient() {
       const add = Math.round((0.1 + Math.random() * 0.3) * 100) / 100;
       const w = Math.min(BIN_CAPACITY_KG, Math.round((pick.weightKg + add) * 100) / 100);
       const at = new Date().toISOString();
-      pushEvent({ id: rid(), at, binId: pick.id, type: "deposit", kg: Math.round((w - pick.weightKg) * 100) / 100 });
+      const level = 1 + Math.floor(Math.random() * levelsFor(pick.id));
+      pushEvent({ id: rid(), at, binId: pick.id, level, pantry: pantryLabel(pick, level), type: "deposit", kg: Math.round((w - pick.weightKg) * 100) / 100 });
       let next = prev.map((b) => (b.id === pick.id ? { ...b, weightKg: w, updatedAt: at } : b));
       const fulls = next.filter((b) => b.weightKg >= BIN_CAPACITY_KG);
       if (fulls.length >= 2) {
@@ -199,11 +220,27 @@ export function DashboardClient() {
   );
   const dimmed = new Set(bins.filter((b) => !visible.includes(b)).map((b) => b.id));
 
+  const shortOf = (id: string) => bins.find((b) => b.id === id)?.short ?? id;
+  const selected = bins.find((b) => b.id === selectedId) ?? bins[0];
+  const pantryStats = now === null ? [] : pantriesByKg(events, shortOf, 7, now);
+  const topByBin = new Map<string, string>();
+  for (const p of pantryStats) {
+    if (!topByBin.has(p.binId)) topByBin.set(p.binId, `L${p.level}`);
+  }
+  const breakdown =
+    now === null || !selected
+      ? []
+      : levelBreakdown(events, selected.id, levelsFor(selected.id), 7, now);
+  const quiet =
+    now === null ? [] : quietPantries(events, bins, levelsFor, 7, now);
+  const avgCaddy = now === null ? null : avgCaddyKg(events, 7, now);
+  const week = now === null ? { count: 0, kg: 0 } : collectionsWeek(events, 7, now);
+
   const stats: Array<[string, string]> = [
     ["Fleet total", `${total.toFixed(2)} kg`],
     ["Repurposed · month", `${repurposed.toFixed(1)} kg`],
     ["Needs collection", String(needs)],
-    ["Deposits today", String(today)],
+    ["Pantry empties · today", String(today)],
   ];
 
   return (
@@ -217,7 +254,8 @@ export function DashboardClient() {
             </p>
             <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Smart Bin Dashboard</h1>
             <p className="mt-1 text-sm text-white/70">
-              Spent coffee grounds, weighed live across seven pantries.
+              Spent coffee grounds, weighed live across {bins.length} smart bins ·{" "}
+              {totalPantries()} pantries.
             </p>
           </div>
           <div className="flex gap-2">
@@ -296,7 +334,8 @@ export function DashboardClient() {
             onSelect={select}
           />
         </div>
-        <div className="flex flex-col gap-2 lg:col-span-2">
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <CleanerPanel bins={bins} initialBinId={selectedId} onDeposit={deposit} />
           <h2 className="font-semibold">
             Collection queue{" "}
             <span className="font-normal text-zinc-500">
@@ -314,6 +353,8 @@ export function DashboardClient() {
             bin={bin}
             selected={bin.id === selectedId}
             eta={etas.get(bin.id) ?? null}
+            levels={levelsFor(bin.id)}
+            topPantry={topByBin.get(bin.id) ?? null}
             onCollect={collect}
             onSelect={setSelectedId}
           />
@@ -324,6 +365,12 @@ export function DashboardClient() {
           Nothing here — every bin is clear. Switch the filter to see the fleet.
         </p>
       )}
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <PantryLeaderboard stats={pantryStats} />
+        <LevelBreakdown binShort={selected?.short ?? ""} rows={breakdown} />
+        <PantryWatch quiet={quiet} avgCaddy={avgCaddy} week={week} />
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
         <MonthlyChart currentTotalKg={repurposed} />

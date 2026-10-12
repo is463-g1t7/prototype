@@ -5,12 +5,16 @@ export function BinCard({
   bin,
   selected,
   eta,
+  levels,
+  topPantry,
   onCollect,
   onSelect,
 }: {
   bin: Bin;
   selected: boolean;
   eta: string | null;
+  levels: number;
+  topPantry: string | null;
   onCollect: (id: string) => void;
   onSelect: (id: string) => void;
 }) {
@@ -42,8 +46,9 @@ export function BinCard({
             {bin.name} <span className="text-zinc-500">({bin.short})</span>
           </h2>
           <p className="text-sm text-zinc-500">
-            {bin.pantry}
+            {bin.pantry} · {levels} pantries
             {eta && eta !== "FULL" ? ` · ${eta}` : ""}
+            {topPantry ? ` · top ${topPantry}` : ""}
           </p>
         </div>
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${badge}`}>
