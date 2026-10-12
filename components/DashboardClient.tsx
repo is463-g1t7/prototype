@@ -253,7 +253,8 @@ export function DashboardClient() {
         </div>
         {ocrMsg && <p className="text-sm text-zinc-500">{ocrMsg}</p>}
         <p className="text-sm text-zinc-500">
-          Need the real thing? <Link href="/" className="underline">Upload a scale photo</Link> and
+          Need the real thing? <Link href="/" className="underline">Upload a scale photo</Link>,{" "}
+          <Link href="/scan" className="underline">scan live with the camera</Link>, or
           paste a line here.
         </p>
       </section>
