@@ -17,7 +17,7 @@ export function MonthlyChart({ currentTotalKg }: { currentTotalKg: number }) {
               { month: "Sep", kg: 71.2, fill: "#c5a253" },
               { month: "Oct", kg: currentTotalKg, fill: "#4c7f3c" },
             ],
-            { x: "month", y: "kg", fill: "fill" },
+            { x: "month", y: "kg", fill: (d) => d.fill },
           ),
         ],
         scales: {
