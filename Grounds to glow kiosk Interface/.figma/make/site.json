@@ -1,0 +1,10 @@
+{
+  "description": "Engage users in creating personalized coffee scrubs by providing skin-based ingredient recommendations and eco-friendly guidance through an AI chatbot.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
