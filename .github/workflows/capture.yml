@@ -1,0 +1,28 @@
+# Hourly smart-bin capture — replaces Vercel cron (Hobby plan only allows daily).
+# Setup: repo Settings → Secrets and variables → Actions:
+#   APP_URL     e.g. https://your-app.vercel.app
+#   CRON_SECRET must match the CRON_SECRET env var on the Vercel project
+# Class demo: Actions tab → "Hourly bin capture" → Run workflow.
+name: Hourly bin capture
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  capture:
+    # stays green until APP_URL is configured in repo secrets
+    if: ${{ secrets.APP_URL != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # keep in sync with INITIAL_BINS in lib/bins.ts
+        bin: [bin-soa, bin-lkcsb, bin-soe, bin-scis, bin-yphsl, bin-soss, bin-lib]
+    steps:
+      - name: Trigger capture for ${{ matrix.bin }}
+        run: >
+          curl -sS -f -m 90
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          "${{ secrets.APP_URL }}/api/capture?bin=${{ matrix.bin }}"

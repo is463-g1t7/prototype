@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description: "Extract text from images with PaddleOCR",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
