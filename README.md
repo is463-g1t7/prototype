@@ -65,6 +65,16 @@ so both tabs must be in the same browser. **Reset** on the dashboard restores th
 `lib/cleaners.ts` holds the demo roster, `lib/scales.ts` the scale frames, and `lib/store.ts`
 the shared localStorage store.
 
+## Deployment
+
+Production runs at https://prototype-one-green.vercel.app, deployed by the
+`Deploy` workflow (`.github/workflows/deploy.yml`) on every push to `main`.
+
+The Vercel project (`prototype`, team `charles-personal`) is driven by CLI with
+`VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` repo secrets — native
+Vercel↔GitHub integration cannot see the private `is463-g1t7` org repo. If the
+`VERCEL_TOKEN` secret is revoked or rotated, update it with a fresh token.
+
 ## Notes
 
 - The free Space sleeps when idle. The first request afterwards can take up to a minute
