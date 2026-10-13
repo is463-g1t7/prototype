@@ -13,9 +13,9 @@ Browser ──multipart──▶ /api/ocr ──@gradio/client──▶ kevansoo
 ## Setup
 
 ```bash
-npm install
+bun install
 cp .env.example .env.local
-npm run dev
+bun run dev
 ```
 
 Open http://localhost:3000.
@@ -68,7 +68,10 @@ the shared localStorage store.
 ## Deployment
 
 Production runs at https://prototype-one-green.vercel.app, deployed by the
-`Deploy` workflow (`.github/workflows/deploy.yml`) on every push to `main`.
+`Deploy` workflow (`.github/workflows/deploy.yml`) on every push to `main`
+(and manual `workflow_dispatch` from `main`; other refs are skipped). The
+runner has no `.vercel` link — the CLI resolves the project from the
+`VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` secrets.
 
 The Vercel project (`prototype`, team `charles-personal`) is driven by CLI with
 `VERCEL_TOKEN`, `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` repo secrets — native

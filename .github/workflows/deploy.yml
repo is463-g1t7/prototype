@@ -9,14 +9,25 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Serialize production deploys: two quick pushes must not race the alias.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
+    # workflow_dispatch can be started from any branch; only main ships to prod.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - name: Deploy to Vercel (production)
-        run: bunx vercel@latest deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
+        run: bunx vercel@59.11.2 deploy --prod --yes --token="$VERCEL_TOKEN"
