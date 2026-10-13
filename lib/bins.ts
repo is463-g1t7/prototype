@@ -21,7 +21,7 @@ export const INITIAL_BINS: Bin[] = [
   { id: "bin-scis", short: "SCIS", name: "School of Computing and Information Systems", pantry: "SCIS Lobby · L1", weightKg: 1.2, updatedAt: "2026-10-12T08:08:00.000Z" },
   { id: "bin-yphsl", short: "YPHSL", name: "Yong Pung How School of Law", pantry: "YPHSL Lobby · L1", weightKg: 3.6, updatedAt: "2026-10-12T08:10:00.000Z" },
   { id: "bin-soss", short: "SOSS", name: "School of Social Sciences", pantry: "SOSS Lobby · L1", weightKg: 6.4, updatedAt: "2026-10-12T08:12:00.000Z" },
-  { id: "bin-lib", short: "LIB", name: "Li Ka Shing Library", pantry: "LIB Lobby · L1", weightKg: 2.2, updatedAt: "2026-10-12T08:14:00.000Z" },
+  { id: "bin-lib", short: "LKS", name: "Li Ka Shing Library", pantry: "LKS Lobby · L1", weightKg: 2.2, updatedAt: "2026-10-12T08:14:00.000Z" },
 ];
 
 /** One pantry per level, one smart bin per building. Levels per building. */

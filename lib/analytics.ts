@@ -63,7 +63,7 @@ function dep(
 /** Newest first. Enough history that velocity, queue, leaderboard and audit trail render on first load. */
 export function seedEvents(): BinEvent[] {
   return [
-    dep("seed-1", 0.1, "bin-lib", "LIB", 4, "c-0142", 1.6, 2.2),
+    dep("seed-1", 0.1, "bin-lib", "LKS", 4, "c-0142", 1.6, 2.2),
     dep("seed-2", 0.3, "bin-scis", "SCIS", 3, "c-0217", 0.7, 1.2),
     dep("seed-3", 0.6, "bin-soa", "SOA", 2, "c-0388", 2.3, 3.1, "manual"),
     dep("seed-4", 0.9, "bin-yphsl", "YPHSL", 5, "c-0388", 2.7, 3.6),

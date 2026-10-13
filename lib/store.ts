@@ -14,8 +14,13 @@ export function loadBins(): Bin[] {
     const parsed = JSON.parse(window.localStorage.getItem(BINS_KEY) ?? "null") as Bin[];
     // ponytail: shape-check by id set, full schema validation if contract drifts
     const ids = new Set(INITIAL_BINS.map((b) => b.id));
-    if (Array.isArray(parsed) && parsed.every((b) => b && ids.has(b.id))) return parsed;
-    return INITIAL_BINS;
+    if (!Array.isArray(parsed) || !parsed.every((b) => b && ids.has(b.id))) return INITIAL_BINS;
+    // Only weights are state; names/labels come from code so renames reach saved demos.
+    const saved = new Map(parsed.map((b) => [b.id, b]));
+    return INITIAL_BINS.map((b) => {
+      const s = saved.get(b.id);
+      return s ? { ...b, weightKg: s.weightKg, updatedAt: s.updatedAt } : b;
+    });
   } catch {
     return INITIAL_BINS;
   }
@@ -28,8 +33,14 @@ export function loadEvents(): BinEvent[] {
     if (
       Array.isArray(parsed) &&
       parsed.every((e) => e && typeof e.at === "string" && typeof e.kg === "number")
-    )
-      return parsed;
+    ) {
+      // Re-derive the denormalized pantry label so a renamed building (LIB → LKS) reads right.
+      const byId = new Map(INITIAL_BINS.map((b) => [b.id, b]));
+      return parsed.map((e) => {
+        const bin = byId.get(e.binId);
+        return bin && e.level != null ? { ...e, pantry: pantryLabel(bin, e.level) } : e;
+      });
+    }
     return seedEvents();
   } catch {
     return seedEvents();

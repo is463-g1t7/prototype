@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { BIN_CAPACITY_KG, statusFor, type Bin } from "@/lib/bins";
 
-// ponytail: pin spots eyeballed off the Sustainability Office art — nudge when confirmed
-const PINS: Record<string, { x: number; y: number }> = {
-  "bin-soa": { x: 31, y: 22 },
-  "bin-soe": { x: 54, y: 38 },
-  "bin-scis": { x: 88, y: 40 },
-  "bin-yphsl": { x: 75, y: 53 },
-  "bin-soss": { x: 25, y: 34 },
-  "bin-lib": { x: 14, y: 62 },
+// Pin spots as % of the full art (1024×671), placed per the team's markup.
+// `narrow` (px) pushes close neighbours apart while the map itself is under 56rem wide
+// (phones, and the cleaner picker's side-by-side layout) — a container query, not viewport.
+// ponytail: LKCSB still eyeballed off the Sustainability Office art — nudge when confirmed
+const PINS: Record<string, { x: number; y: number; narrow?: { x: number; y: number } }> = {
+  "bin-soa": { x: 39, y: 53 },
+  "bin-soe": { x: 35, y: 17, narrow: { x: -20, y: 0 } },
+  "bin-scis": { x: 38, y: 21, narrow: { x: 16, y: 6 } },
+  "bin-yphsl": { x: 26, y: 67, narrow: { x: 6, y: 5 } },
+  "bin-soss": { x: 15, y: 59, narrow: { x: -6, y: -5 } },
+  "bin-lib": { x: 54, y: 38 },
   "bin-lkcsb": { x: 63, y: 62 },
 };
 
@@ -33,7 +36,7 @@ export function CampusMap({
 }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   return (
-    <figure className="overflow-hidden rounded-xl border border-line bg-card">
+    <figure className="@container overflow-hidden rounded-xl border border-line bg-card">
       {/* From md up, show only the band of the art that holds the pins (14%–74%
           of its height). The inner layer keeps the image's own aspect, so pin percentages hold. */}
       <div className="relative overflow-hidden md:aspect-[1024/403]">
@@ -66,12 +69,15 @@ export function CampusMap({
                   aria-label={`${b.name}, ${b.weightKg.toFixed(2)} kilograms`}
                   aria-pressed={selected}
                   // Blinking marks the selection, so status stays colour-only (no pulse on full).
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-[11px] font-bold text-white shadow-lg transition hover:scale-110 ${
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-[11px] font-bold text-white shadow-lg transition hover:scale-110 @max-4xl:translate-x-[calc(-50%_+_var(--nx,0px))] @max-4xl:translate-y-[calc(-50%_+_var(--ny,0px))] ${
                     selected ? "z-[5] animate-pin-blink" : ""
                   } ${dim && !selected ? "opacity-25 saturate-0" : ""}`}
                   style={{
                     left: `${p.x}%`,
                     top: `${p.y}%`,
+                    ...(p.narrow
+                      ? ({ "--nx": `${p.narrow.x}px`, "--ny": `${p.narrow.y}px` } as CSSProperties)
+                      : undefined),
                     backgroundColor: DOT[s],
                     // Static ring for reduced motion; the blink animation overrides it.
                     ...(selected
