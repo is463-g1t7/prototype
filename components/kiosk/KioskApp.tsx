@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from "react"
+"use client";
+
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useSearchParams } from "next/navigation"
 import QRCodeGenerator from "qrcode"
-import { projectId, publicAnonKey } from "../utils/supabase/info"
+// Kiosk Supabase edge-function creds (public anon key), kept as-is from the original kiosk app.
+const projectId = "kekbopuurwbdvwtynndq"
+const publicAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtla2JvcHV1cndiZHZ3dHlubmRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2MjI1NzUsImV4cCI6MjEwNzE5ODU3NX0.kxgMxy9twzzC-AF5WWNCbx39sjO_-liTQXUAKe1V-wM"
 
 type IconName = "arrow" | "bean" | "bottle" | "check" | "chevron" | "cup" | "id" | "leaf" | "message" | "minus" | "plus" | "scan" | "sparkle" | "sugar"
 
-function Icon({ name, size = 24 }: { name: IconName size?: number }) {
-  const paths: Record<IconName, React.ReactNode> = {
+function Icon({ name, size = 24 }: { name: IconName; size?: number }) {
+  const paths: Record<IconName, ReactNode> = {
     arrow: (
       <>
         <path d="M5 12h14" />
@@ -119,7 +124,7 @@ function Brand() {
   )
 }
 
-function TopBar({ step, onHome }: { step: number onHome: () => void }) {
+function TopBar({ step, onHome }: { step: number; onHome: () => void }) {
   return (
     <header className="flex items-center justify-between px-8 py-5 lg:px-12">
       {/* LOGO */}
@@ -139,7 +144,14 @@ function TopBar({ step, onHome }: { step: number onHome: () => void }) {
             Step {step} of 3
           </span>
 
-          <div className="flex gap-2" aria-label={`Step ${step} of 3`}>
+          <div
+            aria-label={`Step ${step} of 3`}
+            aria-valuemax={3}
+            aria-valuemin={0}
+            aria-valuenow={step}
+            className="flex gap-2"
+            role="progressbar"
+          >
             {[1, 2, 3].map((item) => (
               <span
                 key={item}
@@ -161,7 +173,7 @@ function PrimaryButton({
   onClick,
   className = "",
 }: {
-  children: React.ReactNode
+  children: ReactNode
   disabled?: boolean
   onClick: () => void
   className?: string
@@ -380,9 +392,9 @@ function CheckIn({
             <div className="absolute -right-20 -top-16 size-64 rounded-full border-[45px] border-white/5" />
           </section>
           <section className="p-8 lg:p-12">
-            <h2 className="font-display mt-3 text-5xl font-medium tracking-[-0.04em] text-[#2c332a]">
-              What's your name?
-            </h2>
+            <h1 className="font-display mt-3 text-5xl font-medium tracking-[-0.04em] text-[#2c332a]">
+              What&apos;s your name?
+            </h1>
             <label
               className="mt-9 block text-sm font-bold text-[#4e564a]"
               htmlFor="name"
@@ -442,7 +454,13 @@ function CheckIn({
   )
 }
 
-function ScannableQRCode({ url }: { url: string }) {
+function ScannableQRCode({
+  url,
+  onError,
+}: {
+  url: string
+  onError: () => void
+}) {
   const [dataUrl, setDataUrl] = useState("")
 
   useEffect(() => {
@@ -451,12 +469,15 @@ function ScannableQRCode({ url }: { url: string }) {
       errorCorrectionLevel: "M",
       margin: 2,
       width: 640,
-    }).then(setDataUrl)
-  }, [url])
+    })
+      .then(setDataUrl)
+      .catch(() => onError())
+  }, [url, onError])
 
   return (
     <div className="aspect-square w-full bg-white p-2 shadow-sm">
       {dataUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           alt="QR code to open the Grounds to Glow AI guide"
           className="size-full"
@@ -486,11 +507,22 @@ function Guide({
   const [scanState, setScanState] = useState<"idle" | "scanning" | "chat">(
     "idle",
   )
+  const [qrFailed, setQrFailed] = useState(false)
+  const handleQrError = useCallback(() => setQrFailed(true), [])
 
   useEffect(() => {
     if (scanState !== "scanning") return
     const timer = window.setTimeout(() => setScanState("chat"), 1200)
     return () => window.clearTimeout(timer)
+  }, [scanState])
+
+  useEffect(() => {
+    if (scanState === "idle") return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setScanState("idle")
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
   }, [scanState])
 
   return (
@@ -515,16 +547,27 @@ function Guide({
                 Grounds to Glow AI
               </h2>
 
-              <button
-                aria-label="Scan QR code to open Grounds to Glow AI"
-                className="mt-6 w-full max-w-[210px] cursor-pointer rounded-3xl border border-[#e4e5dc] bg-[#faf9f5] p-3 transition hover:-translate-y-1 hover:border-[#d96f42]"
-                onClick={() => setScanState("scanning")}
-                type="button"
-              >
-                <div className="overflow-hidden rounded-2xl">
-                  <ScannableQRCode url={chatbotUrl} />
-                </div>
-              </button>
+              {qrFailed ? (
+                <a
+                  className="mt-6 flex min-h-40 w-full max-w-[210px] items-center justify-center rounded-3xl border border-[#e4e5dc] bg-[#faf9f5] p-6 text-center text-sm font-bold text-[#d96f42] underline"
+                  href={chatbotUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Open the Grounds to Glow AI guide
+                </a>
+              ) : (
+                <button
+                  aria-label="Scan QR code to open Grounds to Glow AI"
+                  className="mt-6 w-full max-w-[210px] cursor-pointer rounded-3xl border border-[#e4e5dc] bg-[#faf9f5] p-3 transition hover:-translate-y-1 hover:border-[#d96f42]"
+                  onClick={() => setScanState("scanning")}
+                  type="button"
+                >
+                  <div className="overflow-hidden rounded-2xl">
+                    <ScannableQRCode onError={handleQrError} url={chatbotUrl} />
+                  </div>
+                </button>
+              )}
 
               <p className="mt-6 max-w-sm text-sm leading-relaxed text-[#747a6d]">
                 Scan to learn about our initiative, ask questions about coffee
@@ -570,6 +613,9 @@ function Guide({
       </main>
       {scanState !== "idle" && (
         <div
+          aria-label={
+            scanState === "scanning" ? "Scanning QR code" : "Grounds to Glow AI chat"
+          }
           aria-modal="true"
           className="fixed inset-0 z-50 grid place-items-center bg-[#20261f]/70 p-4 backdrop-blur-sm"
           role="dialog"
@@ -599,6 +645,7 @@ function Guide({
                   </p>
                 </div>
                 <button
+                  autoFocus
                   className="cursor-pointer rounded-full border border-[#d5d8ce] bg-white px-5 py-2.5 text-sm font-bold text-[#555d50] transition hover:border-[#d96f42]"
                   onClick={() => setScanState("idle")}
                   type="button"
@@ -730,6 +777,7 @@ function Recipe({
 
   return (
     <main className="flex flex-1 flex-col px-6 pb-16 lg:px-16">
+      <h1 className="sr-only">Dispense your coffee scrub</h1>
       {/* SECTION 1: BEFORE YOU START */}
       <section aria-labelledby="warnings-title" className="py-7">
         <div className="flex items-center gap-3">
@@ -1069,7 +1117,7 @@ function Recipe({
   )
 }
 
-function Dispensing({ name, onDone }: { name: string onDone: () => void }) {
+function Dispensing({ name, onDone }: { name: string; onDone: () => void }) {
   const [progress, setProgress] = useState(8)
 
   useEffect(() => {
@@ -1113,7 +1161,7 @@ function Dispensing({ name, onDone }: { name: string onDone: () => void }) {
   )
 }
 
-function Thanks({ name, onRestart }: { name: string onRestart: () => void }) {
+function Thanks({ name, onRestart }: { name: string; onRestart: () => void }) {
   return (
     <main className="grid flex-1 place-items-center px-6 pb-10 text-center">
       <section className="w-full max-w-3xl rounded-[2rem] bg-[#30392d] px-8 py-12 text-white sm:px-12 sm:py-14">
@@ -1158,7 +1206,7 @@ type QuizAnswer = {
   value: string
 }
 
-const quizQuestions: { question: string answers: QuizAnswer[] }[] = [
+const quizQuestions: { question: string; answers: QuizAnswer[] }[] = [
   {
     question: "1. How would you describe your skin?",
     answers: [
@@ -1251,7 +1299,7 @@ function getBuiltInGuidance(question: string) {
   return "That information is unavailable in the Grounds to Glow materials I was given. I can help with the SMU project, collection process, solar dehydrator, kiosk, recipe, skincare quiz, safe use, and storage."
 }
 
-function MobileChat() {
+export function MobileChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
@@ -1361,7 +1409,7 @@ function MobileChat() {
         },
       )
       const responseText = await response.text()
-      let result: { reply?: string error?: string } = {}
+      let result: { reply?: string; error?: string } = {}
       try {
         result = JSON.parse(responseText)
       } catch {
@@ -1369,9 +1417,10 @@ function MobileChat() {
       }
       if (!response.ok || !result.reply)
         throw new Error(result.error || "Unable to reach the AI guide.")
+      const reply = result.reply
       setMessages((current) => [
         ...current,
-        { role: "assistant", content: result.reply },
+        { role: "assistant", content: reply },
       ])
       setUsingBuiltInGuide(false)
     } catch {
@@ -1553,7 +1602,7 @@ function MobileChat() {
             </button>
             <a
               className="rounded-full px-3 py-2 text-xs font-bold text-[#747a6e]"
-              href={window.location.pathname}
+              href="/kiosk"
             >
               Back to kiosk
             </a>
@@ -1589,7 +1638,7 @@ function MobileChat() {
   )
 }
 
-function KioskApp() {
+export function KioskApp() {
   const [step, setStep] = useState(0)
   const [name, setName] = useState("")
   const [quiz, setQuiz] = useState(false)
@@ -1628,10 +1677,9 @@ function KioskApp() {
   )
 }
 
-export default function App() {
-  return new URLSearchParams(window.location.search).get("chat") === "1" ? (
-    <MobileChat />
-  ) : (
-    <KioskApp />
-  )
+/** The original app branched on ?chat=1 from window.location; this is the Next-safe equivalent. */
+export function KioskGate() {
+  const params = useSearchParams()
+  return params.get("chat") === "1" ? <MobileChat /> : <KioskApp />
 }
+

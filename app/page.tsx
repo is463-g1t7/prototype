@@ -12,6 +12,9 @@ export default function Home() {
           <Link href="/scan" className="text-sm text-brand underline">
             → Scale Scanner
           </Link>
+          <Link href="/kiosk" className="text-sm text-brand underline">
+            → Grounds to Glow Kiosk
+          </Link>
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">Image OCR</h1>
         <p className="text-muted">

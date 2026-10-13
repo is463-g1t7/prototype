@@ -94,6 +94,8 @@
   ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -102,6 +104,7 @@
   --color-foreground: var(--color-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-dm-serif), Georgia, serif;
 }
 
 body {
@@ -116,4 +119,45 @@ input:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 1px;
+}
+
+/* Grounds to Glow kiosk (ported from the original standalone kiosk app).
+ * Scoped under .kiosk-root so none of this leaks into the rest of the app. */
+.kiosk-root {
+  min-width: 320px;
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  color: #30372d;
+  background: #f4f1e9;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+.kiosk-root .noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+}
+
+@keyframes kiosk-scan {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4.5rem);
+  }
+}
+
+.kiosk-root .scan-line {
+  animation: kiosk-scan 1.2s ease-in-out infinite;
+}
+
+@media (max-height: 760px) and (min-width: 1024px) {
+  .kiosk-root header {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
+.kiosk-root :is(button, input):focus-visible {
+  outline: 3px solid rgba(217, 111, 66, 0.45);
+  outline-offset: 3px;
 }
